@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoClean Kopargaon - Field Worker Operations</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        amberCustom: {
+                            50: '#FFFBEB',
+                            100: '#FEF3C7',
+                            500: '#F59E0B',
+                            600: '#D97706',
+                            700: '#B45309',
+                            800: '#92400E',
+                            900: '#78350F'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Leaflet OpenStreetMap -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        html, body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0A0B0E;
+            color: #1E293B;
+            height: 100%;
+        }
+        .leaflet-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 18px;
+            z-index: 1;
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D97706;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-black flex justify-center">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden max-w-xs w-full p-3.5 rounded-2xl shadow-2xl text-xs font-bold text-center border transition-all pointer-events-none"></div>
+
+    <!-- Mobile Shell Container -->
+    <div id="appContainer" class="w-full max-w-md h-full min-h-screen bg-[#110602] shadow-2xl relative flex flex-col overflow-x-hidden border-x border-amber-950/40">
+
+        <!-- ================= AUTH VIEW ================= -->
+        <main id="authSection" class="flex-1 flex flex-col justify-between bg-gradient-to-b from-[#8C4A00] via-[#5C2B00] to-[#1A0A00] text-white p-6">
+            <div class="pt-8 text-center space-y-2">
+                <div class="w-16 h-16 mx-auto rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-3xl shadow-xl">
+                    🚜
+                </div>
+                <h1 class="text-2xl font-black tracking-tight">EcoClean Crew Desk</h1>
+                <p class="text-xs text-amber-200/80 font-medium">Field Sanitation & Waste Pickup Portal</p>
+            </div>
+
+            <div class="bg-white dark:bg-[#1A0C04] text-slate-800 dark:text-slate-100 rounded-3xl p-6 shadow-2xl border border-white/10 my-auto space-y-4">
+                <div class="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-amber-950/60">
+                    <div>
+                        <h2 class="text-sm font-black text-slate-900 dark:text-white">Crew Member Login</h2>
+                        <p class="text-[11px] text-slate-400">Access route tasks & live map</p>
+                    </div>
+                    <span class="text-[10px] bg-amber-500/20 text-amber-400 font-extrabold px-2.5 py-1 rounded-full border border-amber-500/30">Field Staff</span>
+                </div>
+
+                <form onsubmit="handleWorkerLogin(event)" class="space-y-3 pt-1">
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-400">Worker ID / Mobile</label>
+                        <input type="text" id="workerLoginId" value="kpgworker" required class="w-full mt-1 px-4 py-2.5 text-xs font-bold rounded-2xl bg-slate-50 dark:bg-[#120601] border border-slate-200 dark:border-amber-950 text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-400">Password</label>
+                        <input type="password" id="workerLoginPass" value="work@12" required class="w-full mt-1 px-4 py-2.5 text-xs font-bold rounded-2xl bg-slate-50 dark:bg-[#120601] border border-slate-200 dark:border-amber-950 text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <button type="submit" class="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-extrabold py-3.5 rounded-2xl shadow-lg text-xs uppercase tracking-wider active:scale-95 transition-all">
+                        Enter Operations Console
+                    </button>
+                </form>
+
+                <div class="pt-2 border-t border-slate-100 dark:border-amber-950/60">
+                    <span class="text-[9px] font-black uppercase text-slate-400 block text-center mb-1.5">Quick Select Persona</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="setWorkerPreset('Raju Shinde', 'MH-17-AG-4421', 'Ward 1 - Station Road')" class="p-2 text-[10px] font-bold bg-amber-950/40 text-amber-200 rounded-xl border border-amber-900/50 text-left">
+                            👷 Raju Shinde<br><span class="text-[8px] text-slate-400">MH-17-AG-4421</span>
+                        </button>
+                        <button type="button" onclick="setWorkerPreset('Ganesh Pawar', 'MH-17-AG-8833', 'Ward 3 - Godavari Ghat')" class="p-2 text-[10px] font-bold bg-amber-950/40 text-amber-200 rounded-xl border border-amber-900/50 text-left">
+                            👷 Ganesh Pawar<br><span class="text-[8px] text-slate-400">MH-17-AG-8833</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center text-[11px] text-amber-200/60 font-semibold py-3">
+                Kopargaon Municipal Corporation (Sanitation Fleet)
+            </div>
+        </main>
+
+        <!-- ================= WORKER DASHBOARD ================= -->
+        <div id="mainSection" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+            
+            <!-- App Header -->
+            <header class="bg-gradient-to-r from-[#8C4A00] via-[#5C2B00] to-[#1A0A00] text-white px-5 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-md">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-xl">🚜</span>
+                    <div>
+                        <h1 class="font-extrabold text-sm leading-tight" id="headerWorkerName">Raju Shinde</h1>
+                        <p class="text-[9px] text-amber-200/80 uppercase font-bold tracking-wider" id="headerWorkerVehicle">Vehicle: MH-17-AG-4421</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="cycleDutyStatus()" id="headerDutyBadge" class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        🟢 On Duty
+                    </button>
+                    <button onclick="handleWorkerLogout()" title="Logout" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs">
+                        🚪
+                    </button>
+                </div>
+            </header>
+
+            <!-- Scrollable Content -->
+            <main class="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
+
+                <!-- Worker Metric Stats -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-[#1A0C04] border border-amber-950/60 p-3 rounded-2xl text-center">
+                        <span class="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Assigned</span>
+                        <h3 id="statAssignedCount" class="text-lg font-black text-amber-400 mt-0.5">0</h3>
+                    </div>
+                    <div class="bg-[#1A0C04] border border-amber-950/60 p-3 rounded-2xl text-center">
+                        <span class="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Completed</span>
+                        <h3 id="statDoneCount" class="text-lg font-black text-emerald-400 mt-0.5">0</h3>
+                    </div>
+                    <div class="bg-[#1A0C04] border border-amber-950/60 p-3 rounded-2xl text-center">
+                        <span class="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Waste (kg)</span>
+                        <h3 id="statTotalKg" class="text-lg font-black text-white mt-0.5">0</h3>
+                    </div>
+                </div>
+
+                <!-- Live City Operations Map (All Complaints + Dustbins) -->
+                <div class="bg-[#1A0C04] border border-amber-950/60 rounded-3xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xs font-black uppercase text-slate-200 flex items-center gap-1.5">
+                                <span>🗺️</span> Kopargaon Live Field Map
+                            </h3>
+                            <p class="text-[10px] text-slate-400">All citizen complaints & municipal bins</p>
+                        </div>
+                        <button onclick="refreshWorkerMap()" class="text-[10px] px-2.5 py-1 bg-amber-950/50 hover:bg-amber-900/50 border border-amber-900/50 text-amber-300 font-bold rounded-lg flex items-center gap-1">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
+
+                    <!-- Interactive Map Viewport -->
+                    <div class="h-64 w-full rounded-2xl overflow-hidden border border-amber-950/80">
+                        <div id="workerMap" class="w-full h-full"></div>
+                    </div>
+
+                    <!-- Map Legend -->
+                    <div class="flex flex-wrap items-center justify-between text-[9px] font-bold pt-1 px-1 text-slate-400 border-t border-amber-950/60">
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span> Available (Pending)</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> My Tasks</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Resolved</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-sky-500"></span> City Dustbin</span>
+                    </div>
+                </div>
+
+                <!-- Active Tasks Container -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-black uppercase tracking-wider text-slate-200">
+                            My Assigned Route Tasks
+                        </h3>
+                        <span id="routeCountBadge" class="text-[10px] bg-amber-950/40 text-amber-400 border border-amber-900/50 px-2 py-0.5 rounded-full font-bold">
+                            0 Tasks
+                        </span>
+                    </div>
+
+                    <div id="workerTaskList" class="space-y-3">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- ================= MANDATORY "AFTER CLEAN" PHOTO MODAL ================= -->
+    <div id="proofModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#1A0C04] border border-amber-900/70 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-amber-950 pb-3">
+                <div>
+                    <h3 class="text-sm font-black text-white flex items-center gap-1.5">
+                        <span>✨</span> Upload "After Clean" Photo
+                    </h3>
+                    <p class="text-[10px] text-slate-400" id="proofModalSubtitle">Task ID: KPG-XXXX</p>
+                </div>
+                <button onclick="closeProofModal()" class="text-slate-400 hover:text-white font-bold text-xs">✕</button>
+            </div>
+
+            <!-- Before Picture Comparison -->
+            <div class="space-y-1">
+                <span class="text-[9px] font-black uppercase tracking-wider text-rose-400 block">Reported Garbage (Before)</span>
+                <div class="flex items-center gap-3 p-2 bg-black/40 rounded-xl border border-amber-950">
+                    <img id="modalBeforeImg" src="" class="w-12 h-12 rounded-lg object-cover border border-amber-950">
+                    <div class="text-[11px] text-slate-300 flex-1">
+                        <p id="modalSpotName" class="font-bold text-white line-clamp-1"></p>
+                        <span class="text-[9px] text-slate-500 font-mono">Status: Awaiting Cleaned Proof</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mandatory "After Clean" Photo Input -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <label class="text-[10px] font-black uppercase text-amber-300 flex items-center gap-1">
+                        <span>📸</span> After Clean Photo <span class="text-rose-500">*Required</span>
+                    </label>
+                    <span class="text-[9px] bg-rose-950/60 border border-rose-900 text-rose-300 px-2 py-0.5 rounded-full font-bold">
+                        Mandatory
+                    </span>
+                </div>
+                
+                <!-- Camera Button Trigger -->
+                <label class="block cursor-pointer">
+                    <div id="proofDropzoneEmpty" class="border-2 border-dashed border-amber-600/60 hover:border-amber-400 rounded-2xl p-4 text-center bg-black/40 transition-colors">
+                        <span class="text-3xl block mb-1">📷</span>
+                        <span class="text-xs font-bold text-amber-200 block">Tap to Open Camera & Snap Clean Spot</span>
+                        <span class="text-[10px] text-slate-400">Must show fully cleaned area</span>
+                    </div>
+                    <input type="file" id="proofFileInput" accept="image/*" capture="environment" onchange="onProofPhotoSelected(event)" class="hidden">
+                </label>
+
+                <!-- After Clean Photo Preview -->
+                <div id="proofPreviewWrapper" class="hidden relative rounded-xl overflow-hidden border-2 border-emerald-500 shadow-md">
+                    <img id="proofPreviewImg" src="" class="w-full h-40 object-cover">
+                    <div class="absolute bottom-0 inset-x-0 bg-emerald-950/90 py-1 text-center text-[10px] text-emerald-300 font-black">
+                        ✓ AFTER CLEAN PHOTO ATTACHED
+                    </div>
+                    <button type="button" onclick="clearProofPhoto()" class="absolute top-2 right-2 bg-black/80 hover:bg-black text-white w-6 h-6 rounded-full text-xs font-bold">✕</button>
+                </div>
+
+                <!-- Sample Simulator Option -->
+                <button type="button" onclick="loadSampleCleanProof()" class="w-full py-1.5 bg-amber-950/40 hover:bg-amber-950/80 border border-amber-900/60 text-amber-300 text-[10px] font-bold rounded-xl active:scale-95 transition-all">
+                    ✨ Load Verified Cleaned Demo Photo
+                </button>
+            </div>
+
+            <!-- Weight of Waste Collected -->
+            <div>
+                <label class="text-[10px] font-black uppercase text-slate-400 block">Total Waste Cleared (in Kilograms)</label>
+                <input type="number" id="wasteWeightInput" value="35" min="1" max="1000" class="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl bg-black/50 border border-amber-950 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeProofModal()" class="flex-1 py-2.5 bg-slate-900 text-slate-300 font-bold text-xs rounded-xl">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmTaskResolution()" class="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs rounded-xl shadow-md active:scale-95 transition-all">
+                    ✓ Send Photo & Resolve
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        const CONFIG = {
+            KOPARGAON_COORDS: [19.8841, 74.4788],
+            CITIZEN_STORAGE_KEY: 'ecoclean_citizen_reports',
+            SHARED_STORAGE_KEY: 'ecoclean_shared_complaints',
+            DUSTBINS_STORAGE_KEY: 'ecoclean_municipal_dustbins'
+        };
+
+        let currentWorker = {
+            name: "Raju Shinde",
+            vehicle: "MH-17-AG-4421",
+            ward: "Ward 1 - Station Road",
+            status: "On Duty",
+            completedCount: 34,
+            totalKg: 1240
+        };
+
+        let mapInstance = null;
+        let mapMarkers = [];
+        let activeTaskIdToResolve = null;
+        let attachedProofPhotoUrl = "";
+
+        // Complaints Store
+        let complaints = JSON.parse(localStorage.getItem(CONFIG.SHARED_STORAGE_KEY) || 'null') || [
+            {
+                id: "KPG-8801",
+                time: "15 mins ago",
+                landmark: "Station Road Ward Spot",
+                coords: [19.901689, 74.494780],
+                comment: "Bins overflowing on street corner.",
+                beforeImage: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80",
+                afterImage: "",
+                status: "Dispatched",
+                assignedWorker: "Raju Shinde"
+            },
+            {
+                id: "KPG-8794",
+                time: "1 hour ago",
+                landmark: "Godavari Ghat Bridge",
+                coords: [19.8858, 74.4855],
+                comment: "Vegetable market refuse piled near bridge abutment.",
+                beforeImage: "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=600&q=80",
+                afterImage: "",
+                status: "Pending",
+                assignedWorker: null
+            },
+            {
+                id: "KPG-8762",
+                time: "2 hours ago",
+                landmark: "Tilak Nagar Corner",
+                coords: [19.8912, 74.4768],
+                comment: "Plastic clutter discarded behind market stall.",
+                beforeImage: "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=600&q=80",
+                afterImage: "",
+                status: "Pending",
+                assignedWorker: null
+            }
+        ];
+
+        // Municipal Dustbins
+        let municipalDustbins = JSON.parse(localStorage.getItem(CONFIG.DUSTBINS_STORAGE_KEY) || 'null') || [
+            { id: "BIN-101", name: "Kopargaon Bus Stand Depo", coords: [19.8841, 74.4788], capacity: "1100L", category: "Mixed Municipal Waste" },
+            { id: "BIN-102", name: "Tilak Nagar Vegetable Market", coords: [19.8912, 74.4768], capacity: "500L", category: "Wet & Biodegradable" },
+            { id: "BIN-103", name: "Godavari River Bridge North", coords: [19.8858, 74.4855], capacity: "500L", category: "Mixed Municipal Waste" },
+            { id: "BIN-104", name: "Sanjivani College Main Gate", coords: [19.8820, 74.4690], capacity: "240L", category: "Dry & Plastic Waste" }
+        ];
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.className = `fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-xs w-full p-3.5 rounded-2xl shadow-2xl text-xs font-bold text-center border transition-all ${
+                isError ? 'bg-rose-950 text-white border-rose-500/50' : 'bg-emerald-950 text-white border-emerald-500/50'
+            }`;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3500);
+        }
+
+        /* ------------------ AUTH LOGIC ------------------ */
+        function setWorkerPreset(name, vehicle, ward) {
+            currentWorker.name = name;
+            currentWorker.vehicle = vehicle;
+            currentWorker.ward = ward;
+            document.getElementById('workerLoginId').value = name.toLowerCase().replace(' ', '');
+            document.getElementById('workerLoginPass').value = "work@12";
+            showToast(`Preset: ${name}`);
+        }
+
+        function handleWorkerLogin(e) {
+            e.preventDefault();
+            const uId = document.getElementById('workerLoginId').value.trim();
+            const pass = document.getElementById('workerLoginPass').value.trim();
+
+            if (!uId || !pass) {
+                showToast("Please enter credentials", true);
+                return;
+            }
+
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('mainSection').classList.remove('hidden');
+
+            document.getElementById('headerWorkerName').innerText = currentWorker.name;
+            document.getElementById('headerWorkerVehicle').innerText = `Vehicle: ${currentWorker.vehicle}`;
+
+            initWorkerDashboard();
+        }
+
+        function handleWorkerLogout() {
+            document.getElementById('mainSection').classList.add('hidden');
+            document.getElementById('authSection').classList.remove('hidden');
+        }
+
+        function cycleDutyStatus() {
+            const badge = document.getElementById('headerDutyBadge');
+            if (currentWorker.status === 'On Duty') {
+                currentWorker.status = 'On Break';
+                badge.className = "px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30";
+                badge.innerText = "🟡 On Break";
+            } else if (currentWorker.status === 'On Break') {
+                currentWorker.status = 'Off Duty';
+                badge.className = "px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-400 border border-rose-500/30";
+                badge.innerText = "🔴 Off Duty";
+            } else {
+                currentWorker.status = 'On Duty';
+                badge.className = "px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                badge.innerText = "🟢 On Duty";
+            }
+            showToast(`Status: ${currentWorker.status}`);
+        }
+
+        /* ------------------ DASHBOARD INIT ------------------ */
+        function initWorkerDashboard() {
+            syncData();
+            renderTaskList();
+            setTimeout(initWorkerMap, 200);
+
+            // Cross-app sync listener
+            window.addEventListener('storage', (e) => {
+                if (e.key === CONFIG.SHARED_STORAGE_KEY || e.key === CONFIG.CITIZEN_STORAGE_KEY || e.key === CONFIG.DUSTBINS_STORAGE_KEY) {
+                    syncData();
+                    renderTaskList();
+                    renderAllMapMarkers();
+                }
+            });
+        }
+
+        function syncData() {
+            const raw = localStorage.getItem(CONFIG.SHARED_STORAGE_KEY);
+            if (raw) {
+                try {
+                    complaints = JSON.parse(raw);
+                } catch(e){}
+            }
+            const rawBins = localStorage.getItem(CONFIG.DUSTBINS_STORAGE_KEY);
+            if (rawBins) {
+                try {
+                    municipalDustbins = JSON.parse(rawBins);
+                } catch(e){}
+            }
+            updateMetrics();
+        }
+
+        function saveComplaints() {
+            localStorage.setItem(CONFIG.SHARED_STORAGE_KEY, JSON.stringify(complaints));
+            // Sync with Citizen App
+            const citizenRaw = localStorage.getItem(CONFIG.CITIZEN_STORAGE_KEY);
+            if (citizenRaw) {
+                try {
+                    let cList = JSON.parse(citizenRaw);
+                    complaints.forEach(item => {
+                        const target = cList.find(c => c.id === item.id);
+                        if (target) {
+                            target.status = item.status;
+                            target.afterImage = item.afterImage || "";
+                        }
+                    });
+                    localStorage.setItem(CONFIG.CITIZEN_STORAGE_KEY, JSON.stringify(cList));
+                } catch(e){}
+            }
+        }
+
+        function updateMetrics() {
+            const myTasks = complaints.filter(c => c.assignedWorker === currentWorker.name && c.status !== 'Resolved');
+            document.getElementById('statAssignedCount').innerText = myTasks.length;
+            document.getElementById('routeCountBadge').innerText = `${myTasks.length} Tasks`;
+            document.getElementById('statDoneCount').innerText = currentWorker.completedCount;
+            document.getElementById('statTotalKg').innerText = currentWorker.totalKg;
+        }
+
+        /* ------------------ WORKER ROUTE TASK LIST ------------------ */
+        function renderTaskList() {
+            const list = document.getElementById('workerTaskList');
+            list.innerHTML = "";
+
+            const myTasks = complaints.filter(c => c.assignedWorker === currentWorker.name && c.status !== 'Resolved');
+
+            if (myTasks.length === 0) {
+                list.innerHTML = `
+                    <div class="bg-[#1A0C04] border border-amber-950/60 rounded-3xl p-6 text-center space-y-2">
+                        <span class="text-3xl block">🎉</span>
+                        <h4 class="text-xs font-bold text-slate-200">No active assigned pickups.</h4>
+                        <p class="text-[10px] text-slate-500">Tap available red pins on the map above to self-assign nearby tasks.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            myTasks.forEach(task => {
+                const card = document.createElement('div');
+                card.className = "bg-[#1A0C04] border border-amber-950/60 rounded-3xl p-4 shadow-sm space-y-3";
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-[9px] font-black text-amber-500 block uppercase tracking-wider">${task.id} • ${task.time}</span>
+                            <h4 class="font-extrabold text-xs text-white">${task.landmark}</h4>
+                        </div>
+                        <span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                            ${task.status}
+                        </span>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <img src="${task.beforeImage}" class="w-16 h-16 rounded-xl object-cover border border-amber-950">
+                        <div class="text-xs text-slate-300 flex-1 space-y-1">
+                            <p class="line-clamp-2">${task.comment}</p>
+                            <span class="text-[9px] font-mono text-slate-400 block">${task.coords[0].toFixed(5)}, ${task.coords[1].toFixed(5)}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 pt-1 border-t border-amber-950/60">
+                        <!-- Turn-by-Turn Navigation -->
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${task.coords[0]},${task.coords[1]}" target="_blank" class="flex-1 py-2.5 text-center bg-slate-900 border border-amber-950 hover:bg-amber-950/30 text-amber-200 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all">
+                            <span>🧭</span>
+                            <span>Navigate</span>
+                        </a>
+
+                        <!-- Submit Cleaned Proof -->
+                        <button onclick="openProofModal('${task.id}')" class="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-xl shadow flex items-center justify-center gap-1.5 active:scale-95 transition-all">
+                            <span>📸</span>
+                            <span>Send After Clean</span>
+                        </button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        /* ------------------ INTERACTIVE WORKER MAP ------------------ */
+        function initWorkerMap() {
+            if (!mapInstance) {
+                mapInstance = L.map('workerMap', { zoomControl: true }).setView(CONFIG.KOPARGAON_COORDS, 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapInstance);
+            } else {
+                mapInstance.invalidateSize();
+            }
+            renderAllMapMarkers();
+        }
+
+        function refreshWorkerMap() {
+            syncData();
+            renderTaskList();
+            renderAllMapMarkers();
+            showToast("🔄 Map data refreshed");
+        }
+
+        function renderAllMapMarkers() {
+            if (!mapInstance) return;
+
+            // Clear existing markers
+            mapMarkers.forEach(m => mapInstance.removeLayer(m));
+            mapMarkers = [];
+
+            // 1. Complaints Pins
+            complaints.forEach(item => {
+                let isMyTask = (item.assignedWorker === currentWorker.name);
+                let pinBg = 'bg-rose-600'; // Available / Pending
+                let statusLabel = 'Available / Pending';
+
+                if (item.status === 'Resolved') {
+                    pinBg = 'bg-emerald-600';
+                    statusLabel = 'Resolved';
+                } else if (isMyTask) {
+                    pinBg = 'bg-amber-500';
+                    statusLabel = 'Assigned to You';
+                } else if (item.status === 'Dispatched') {
+                    pinBg = 'bg-purple-600';
+                    statusLabel = `Assigned to ${item.assignedWorker}`;
+                }
+
+                const customIcon = L.divIcon({
+                    html: `<div class="w-7 h-7 rounded-full ${pinBg} border-2 border-white text-white flex items-center justify-center text-xs font-black shadow-xl cursor-pointer">
+                               ${item.status === 'Resolved' ? '✓' : '⚠️'}
+                           </div>`,
+                    className: '',
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+
+                const marker = L.marker(item.coords, { icon: customIcon }).addTo(mapInstance);
+
+                let popupHtml = `
+                    <div class="p-2 max-w-[210px] font-sans text-slate-900 space-y-1.5">
+                        <div class="flex items-center justify-between text-[10px] font-bold">
+                            <span>${item.id}</span>
+                            <span class="font-extrabold uppercase ${isMyTask ? 'text-amber-700' : (item.status === 'Resolved' ? 'text-emerald-700' : 'text-rose-700')}">
+                                ${statusLabel}
+                            </span>
+                        </div>
+                        <img src="${item.beforeImage}" class="w-full h-20 object-cover rounded-lg border">
+                        <p class="text-[11px] font-bold text-slate-800">${item.landmark}</p>
+                        <p class="text-[10px] text-slate-600 line-clamp-2">${item.comment}</p>
+
+                        <div class="pt-1 space-y-1">
+                            <a href="https://www.google.com/maps/dir/?api=1&destination=${item.coords[0]},${item.coords[1]}" target="_blank" class="block text-center py-1 bg-slate-900 text-white rounded text-[10px] font-bold">
+                                🧭 Navigate Here ↗
+                            </a>
+
+                            ${(!item.assignedWorker && item.status === 'Pending') ? `
+                                <button onclick="selfAssignComplaint('${item.id}')" class="w-full py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10px] font-black shadow">
+                                    ⚡ Self-Assign Task
+                                </button>
+                            ` : ''}
+
+                            ${(isMyTask && item.status !== 'Resolved') ? `
+                                <button onclick="openProofModal('${item.id}')" class="w-full py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-black shadow">
+                                    📸 Send After Clean Photo
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+
+                marker.bindPopup(popupHtml);
+                mapMarkers.push(marker);
+            });
+
+            // 2. Municipal Dustbins Pins
+            municipalDustbins.forEach(bin => {
+                const binIcon = L.divIcon({
+                    html: `<div class="w-6 h-6 rounded-lg bg-sky-500 border border-white text-white flex items-center justify-center text-[10px] shadow-lg cursor-pointer">🗑️</div>`,
+                    className: '',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+
+                const binMarker = L.marker(bin.coords, { icon: binIcon }).addTo(mapInstance);
+                binMarker.bindPopup(`
+                    <div class="p-1.5 max-w-[180px] font-sans text-slate-900 space-y-1">
+                        <span class="text-[9px] font-black uppercase text-sky-600 block">Civic Dustbin</span>
+                        <h4 class="font-extrabold text-xs text-slate-900">${bin.name}</h4>
+                        <p class="text-[10px] text-slate-600">${bin.capacity} • ${bin.category}</p>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${bin.coords[0]},${bin.coords[1]}" target="_blank" class="text-[10px] text-rose-600 font-bold underline block pt-0.5">Navigate to Bin ↗</a>
+                    </div>
+                `);
+                mapMarkers.push(binMarker);
+            });
+        }
+
+        function selfAssignComplaint(complaintId) {
+            const item = complaints.find(c => c.id === complaintId);
+            if (item) {
+                item.status = "Dispatched";
+                item.assignedWorker = currentWorker.name;
+
+                saveComplaints();
+                updateMetrics();
+                renderTaskList();
+                renderAllMapMarkers();
+
+                showToast(`🚚 Task ${complaintId} assigned to your route!`);
+            }
+        }
+
+        /* ------------------ MANDATORY "AFTER CLEAN" PROOF LOGIC ------------------ */
+        function openProofModal(taskId) {
+            activeTaskIdToResolve = taskId;
+            const task = complaints.find(c => c.id === taskId);
+            if (!task) return;
+
+            document.getElementById('proofModalSubtitle').innerText = `Task ID: ${task.id}`;
+            document.getElementById('modalBeforeImg').src = task.beforeImage;
+            document.getElementById('modalSpotName').innerText = task.landmark;
+
+            clearProofPhoto();
+            document.getElementById('wasteWeightInput').value = "35";
+            document.getElementById('proofModal').classList.remove('hidden');
+        }
+
+        function closeProofModal() {
+            document.getElementById('proofModal').classList.add('hidden');
+            activeTaskIdToResolve = null;
+        }
+
+        function onProofPhotoSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const localUrl = URL.createObjectURL(file);
+            attachedProofPhotoUrl = localUrl;
+            showProofPreview(localUrl);
+        }
+
+        function loadSampleCleanProof() {
+            attachedProofPhotoUrl = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80";
+            showProofPreview(attachedProofPhotoUrl);
+            showToast("✨ Sample Cleaned Photo Loaded");
+        }
+
+        function showProofPreview(src) {
+            document.getElementById('proofDropzoneEmpty').classList.add('hidden');
+            document.getElementById('proofPreviewWrapper').classList.remove('hidden');
+            document.getElementById('proofPreviewImg').src = src;
+        }
+
+        function clearProofPhoto() {
+            attachedProofPhotoUrl = "";
+            document.getElementById('proofFileInput').value = "";
+            document.getElementById('proofDropzoneEmpty').classList.remove('hidden');
+            document.getElementById('proofPreviewWrapper').classList.add('hidden');
+        }
+
+        function confirmTaskResolution() {
+            // Strict Enforcement of After Clean photo
+            if (!attachedProofPhotoUrl) {
+                showToast("📸 Mandatory: Snap or upload 'After Clean' photo!", true);
+                return;
+            }
+
+            const weight = parseInt(document.getElementById('wasteWeightInput').value) || 25;
+            const task = complaints.find(c => c.id === activeTaskIdToResolve);
+
+            if (task) {
+                task.status = "Resolved";
+                task.afterImage = attachedProofPhotoUrl; // Set the verified after clean image
+
+                // Update metrics
+                currentWorker.completedCount++;
+                currentWorker.totalKg += weight;
+
+                saveComplaints();
+                updateMetrics();
+                renderTaskList();
+                renderAllMapMarkers();
+                closeProofModal();
+
+                showToast(`✅ ${task.id} Resolved! Cleaned photo sent.`);
+            }
+        }
+    </script>
+</body>
+</html>
