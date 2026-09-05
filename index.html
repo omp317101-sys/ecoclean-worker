@@ -267,6 +267,34 @@
 
     <!-- JAVASCRIPT ENGINE & FIREBASE -->
     <script>
+        // DOM LEVEL SCRUBBER: Replaces any instance of the legacy name across the entire live DOM
+        const legacyWordRegex = /kopargaon/gi;
+        function scrubDom(node = document.body) {
+            if (!node) return;
+            const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false);
+            let n;
+            while (n = walker.nextNode()) {
+                if (legacyWordRegex.test(n.nodeValue)) {
+                    n.nodeValue = n.nodeValue.replace(legacyWordRegex, "City");
+                }
+            }
+        }
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(m => {
+                m.addedNodes.forEach(node => {
+                    if (node.nodeType === 3) {
+                        if (legacyWordRegex.test(node.nodeValue)) {
+                            node.nodeValue = node.nodeValue.replace(legacyWordRegex, "City");
+                        }
+                    } else if (node.nodeType === 1) {
+                        scrubDom(node);
+                    }
+                });
+            });
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+
         const firebaseConfig = {
             apiKey: "AIzaSyDm3z435fT5gnmbAj7Bj9Zz_UE5zWWDiEk",
             authDomain: "ecoclean-35b65.firebaseapp.com",
@@ -291,7 +319,6 @@
         let complaints = [];
         let municipalDustbins = [];
 
-        // Dynamic Sanitizer: converts any remaining historical string to "City"
         function sanitizeText(txt) {
             if (!txt) return "";
             return String(txt).replace(/kopargaon/gi, "City");
@@ -326,7 +353,7 @@
 
         function showToast(msg, isError = false) {
             const toast = document.getElementById('toast');
-            toast.innerText = msg;
+            toast.innerText = sanitizeText(msg);
             toast.className = `fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-xs w-full p-3.5 rounded-2xl shadow-2xl text-xs font-bold text-center border transition-all ${
                 isError ? 'bg-rose-950 text-white border-rose-500/50' : 'bg-emerald-950 text-white border-emerald-500/50'
             }`;
@@ -368,12 +395,14 @@
                 renderTaskList();
                 renderCompletedHistory();
                 renderAllMapMarkers();
+                scrubDom();
             });
 
             db.ref('dustbins').on('value', (snapshot) => {
                 const data = snapshot.val();
                 municipalDustbins = data ? Object.values(data) : [];
                 renderAllMapMarkers();
+                scrubDom();
             });
 
             setTimeout(initWorkerMap, 200);
