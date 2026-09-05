@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoClean Kopargaon - Field Worker Operations</title>
+    <title>EcoClean City - Field Worker Operations</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -109,7 +109,7 @@
             </div>
 
             <div class="text-center text-[11px] text-amber-200/60 font-semibold py-3">
-                Kopargaon Municipal Corporation
+                City Municipal Corporation
             </div>
         </main>
 
@@ -211,7 +211,7 @@
                     <h3 class="text-sm font-black text-white flex items-center gap-1.5">
                         <span>✨</span> Upload "After Clean" Photo
                     </h3>
-                    <p class="text-[10px] text-slate-400" id="proofModalSubtitle">Task ID: KPG-XXXX</p>
+                    <p class="text-[10px] text-slate-400" id="proofModalSubtitle">Task ID: CITY-XXXX</p>
                 </div>
                 <button onclick="closeProofModal()" class="text-slate-400 hover:text-white font-bold text-xs">✕</button>
             </div>
@@ -280,7 +280,7 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        const KOPARGAON_COORDS = [19.8841, 74.4788];
+        const CITY_COORDS = [19.8841, 74.4788];
         let currentWorker = { name: "Raju Shinde", vehicle: "MH-17-AG-4421" };
         let mapInstance = null;
         let mapMarkers = [];
@@ -290,6 +290,12 @@
 
         let complaints = [];
         let municipalDustbins = [];
+
+        // Dynamic Sanitizer: converts any remaining historical string to "City"
+        function sanitizeText(txt) {
+            if (!txt) return "";
+            return String(txt).replace(/kopargaon/gi, "City");
+        }
 
         function formatDateTime(timestamp) {
             if (!timestamp) return "Date unavailable";
@@ -355,7 +361,6 @@
         }
 
         function initWorkerDashboard() {
-            // Real-time listener for Complaints
             db.ref('complaints').on('value', (snapshot) => {
                 const data = snapshot.val();
                 complaints = data ? Object.values(data).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)) : [];
@@ -365,7 +370,6 @@
                 renderAllMapMarkers();
             });
 
-            // Real-time listener for Dustbins
             db.ref('dustbins').on('value', (snapshot) => {
                 const data = snapshot.val();
                 municipalDustbins = data ? Object.values(data) : [];
@@ -391,7 +395,6 @@
             document.getElementById('statTotalKg').innerText = totalWaste;
         }
 
-        // RENDER ACTIVE ROUTE TASKS (Protected against deletion)
         function renderTaskList() {
             const list = document.getElementById('workerTaskList');
             list.innerHTML = "";
@@ -412,6 +415,7 @@
             myTasks.forEach(task => {
                 const pt = extractCoords(task.coords) || [0, 0];
                 const filedDateString = task.filedAtFormatted || (task.timestamp ? formatDateTime(task.timestamp) : "Recently");
+                const cleanLandmark = sanitizeText(task.landmark);
 
                 const card = document.createElement('div');
                 card.className = "bg-[#1A0C04] border border-amber-950/60 rounded-3xl p-4 shadow-sm space-y-3";
@@ -425,12 +429,12 @@
                         <span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">${task.status}</span>
                     </div>
 
-                    <h4 class="font-extrabold text-xs text-white">${task.landmark}</h4>
+                    <h4 class="font-extrabold text-xs text-white">${cleanLandmark}</h4>
 
                     <div class="flex gap-3">
                         <img src="${task.beforeImage}" class="w-16 h-16 rounded-xl object-cover border border-amber-950">
                         <div class="text-xs text-slate-300 flex-1 space-y-1">
-                            <p class="line-clamp-2">${task.comment}</p>
+                            <p class="line-clamp-2">${sanitizeText(task.comment)}</p>
                             <span class="text-[9px] font-mono text-slate-400 block">${pt[0].toFixed(5)}, ${pt[1].toFixed(5)}</span>
                         </div>
                     </div>
@@ -448,7 +452,6 @@
             });
         }
 
-        // RENDER COMPLETED HISTORY (With Conditional Delete)
         function renderCompletedHistory() {
             const list = document.getElementById('workerCompletedHistoryList');
             list.innerHTML = "";
@@ -468,6 +471,7 @@
                 const pt = extractCoords(task.coords) || [0, 0];
                 const filedDateString = task.filedAtFormatted || (task.timestamp ? formatDateTime(task.timestamp) : "Recently");
                 const resolvedDateString = task.resolvedAt ? formatDateTime(task.resolvedAt) : "Cleared";
+                const cleanLandmark = sanitizeText(task.landmark);
 
                 const card = document.createElement('div');
                 card.className = "bg-[#1A0C04] border border-emerald-950/50 rounded-3xl p-4 shadow-sm space-y-3";
@@ -482,7 +486,7 @@
                         <span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Resolved</span>
                     </div>
 
-                    <h4 class="font-extrabold text-xs text-white">${task.landmark}</h4>
+                    <h4 class="font-extrabold text-xs text-white">${cleanLandmark}</h4>
 
                     <div class="flex gap-2.5">
                         <div class="space-y-1">
@@ -494,12 +498,11 @@
                             <img src="${task.afterImage}" class="w-14 h-14 rounded-xl object-cover border-2 border-emerald-500">
                         </div>
                         <div class="text-xs text-slate-300 flex-1 pl-1 space-y-1">
-                            <p class="line-clamp-2">${task.comment}</p>
+                            <p class="line-clamp-2">${sanitizeText(task.comment)}</p>
                             <span class="text-[9px] font-mono text-slate-400 block">${pt[0].toFixed(5)}, ${pt[1].toFixed(5)}</span>
                         </div>
                     </div>
 
-                    <!-- CONDITIONAL DELETE BUTTON (Only available for Resolved history) -->
                     <div class="pt-2 border-t border-amber-950/40 flex justify-end">
                         <button onclick="deleteWorkerResolvedTask('${task.id}')" class="w-full py-2 bg-rose-950/40 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-extrabold text-[10px] rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all">
                             <span>🗑️</span>
@@ -511,7 +514,6 @@
             });
         }
 
-        // DELETION CONTROLLER FOR WORKER
         function deleteWorkerResolvedTask(taskId) {
             const target = complaints.find(c => c.id === taskId);
             if (!target) return;
@@ -534,7 +536,7 @@
 
         function initWorkerMap() {
             if (!mapInstance) {
-                mapInstance = L.map('workerMap', { zoomControl: true }).setView(KOPARGAON_COORDS, 14);
+                mapInstance = L.map('workerMap', { zoomControl: true }).setView(CITY_COORDS, 14);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapInstance);
             } else {
                 mapInstance.invalidateSize();
@@ -565,6 +567,7 @@
                 });
 
                 const filedDateString = item.filedAtFormatted || (item.timestamp ? formatDateTime(item.timestamp) : "Recently");
+                const cleanLandmark = sanitizeText(item.landmark);
 
                 const marker = L.marker(pt, { icon }).addTo(mapInstance);
                 marker.bindPopup(`
@@ -574,7 +577,7 @@
                             <span class="uppercase">${item.status}</span>
                         </div>
                         <img src="${item.beforeImage}" class="w-full h-20 object-cover rounded-lg">
-                        <p class="text-[11px] font-bold">${item.landmark}</p>
+                        <p class="text-[11px] font-bold">${cleanLandmark}</p>
                         <p class="text-[10px] text-slate-500">🕒 Filed: ${filedDateString}</p>
                         
                         ${(!item.assignedWorker && item.status === 'Pending') ? `
@@ -602,7 +605,7 @@
                     className: '', iconSize: [24, 24], iconAnchor: [12, 12]
                 });
                 const binMarker = L.marker(pt, { icon: binIcon }).addTo(mapInstance);
-                binMarker.bindPopup(`<strong class="text-xs text-slate-900">${bin.name}</strong><br><span class="text-[10px] text-slate-600">${bin.capacity} • ${bin.category}</span>`);
+                binMarker.bindPopup(`<strong class="text-xs text-slate-900">${sanitizeText(bin.name)}</strong><br><span class="text-[10px] text-slate-600">${bin.capacity} • ${bin.category}</span>`);
                 binMarkers.push(binMarker);
             });
         }
@@ -623,7 +626,7 @@
 
             document.getElementById('proofModalSubtitle').innerText = `Task ID: ${task.id}`;
             document.getElementById('modalBeforeImg').src = task.beforeImage;
-            document.getElementById('modalSpotName').innerText = task.landmark;
+            document.getElementById('modalSpotName').innerText = sanitizeText(task.landmark);
 
             clearProofPhoto();
             document.getElementById('proofModal').classList.remove('hidden');
@@ -660,7 +663,6 @@
             document.getElementById('proofPreviewWrapper').classList.add('hidden');
         }
 
-        // CONFIRM RESOLUTION WITH TIMESTAMPS
         function confirmTaskResolution() {
             if (!attachedProofPhotoUrl) {
                 showToast("📸 Mandatory: Snap or upload 'After Clean' photo!", true);
