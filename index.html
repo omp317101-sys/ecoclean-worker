@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoClean Kopargaon - Sanitation Crew Desk</title>
+    <title>Eco Clean City - Sanitation Crew Desk</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -61,7 +61,6 @@
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #1B5E20; border-radius: 6px; }
 
-        /* Opening Background: Person Taking Photo of Waste */
         .hero-bg {
             background-image: linear-gradient(to bottom, rgba(6, 23, 10, 0.85), rgba(8, 35, 11, 0.94)), 
                               url('https://images.unsplash.com/photo-1526951521990-620dc14c214b?auto=format&fit=crop&w=1200&q=80');
@@ -69,9 +68,8 @@
             background-position: center;
         }
 
-        /* Real-Time Bin Overflow Pulse Effect */
         .bin-critical-pulse {
-            animation: pulse-ring 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+            animation: pulse-ring 1.5s infinite cubic-bezier(0.66, 0, 1);
         }
         @keyframes pulse-ring {
             0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.85); transform: scale(0.96); }
@@ -82,7 +80,6 @@
 </head>
 <body class="h-full bg-[#06170A] text-slate-100 antialiased selection:bg-emerald-600 selection:text-white flex justify-center">
 
-    <!-- Toast Notification -->
     <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden max-w-xs w-full p-3.5 rounded-2xl shadow-2xl text-xs font-bold text-center border transition-all pointer-events-none"></div>
 
     <div id="appContainer" class="w-full max-w-md h-full min-h-screen bg-[#0A1D0E] shadow-2xl relative flex flex-col overflow-x-hidden border-x border-emerald-950/40">
@@ -91,14 +88,14 @@
         <main id="authSection" class="flex-1 flex flex-col justify-between hero-bg text-white p-6 relative">
             <div class="pt-6 text-center space-y-3 relative z-10">
                 <div class="w-20 h-20 mx-auto rounded-full bg-white p-1 shadow-2xl border-2 border-emerald-400/50 flex items-center justify-center overflow-hidden">
-                    <img src="logo.png" onerror="this.onerror=null; this.src='https://api.iconify.design/fluent-emoji:wastebasket.svg';" alt="EcoClean Kopargaon Logo" class="w-full h-full object-contain">
+                    <img src="logo.png" onerror="this.onerror=null; this.src='https://api.iconify.design/fluent-emoji:wastebasket.svg';" alt="Eco Clean City Logo" class="w-full h-full object-contain">
                 </div>
                 <div>
                     <h1 class="text-2xl font-black tracking-tight text-white">Crew Operations Desk</h1>
-                    <p class="text-xs text-emerald-200/90 font-bold uppercase tracking-wider">EcoClean Kopargaon • Field Sanitation</p>
+                    <p class="text-xs text-emerald-200/90 font-bold uppercase tracking-wider">Eco Clean City • Field Sanitation</p>
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-[10px] text-emerald-300 font-semibold mt-1">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        Kopargaon Field Operations
+                        City Field Operations
                     </div>
                 </div>
             </div>
@@ -125,22 +122,10 @@
                         Launch Operations Console
                     </button>
                 </form>
-
-                <div class="pt-2 border-t border-emerald-900/60">
-                    <span class="text-[9px] font-black uppercase text-emerald-300/80 block text-center mb-1.5">Quick Select Kopargaon Staff</span>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button type="button" onclick="setWorkerPreset('Raju Shinde', 'MH-17-AG-4421')" class="p-2 text-[10px] font-bold bg-emerald-950/40 text-emerald-200 rounded-xl border border-emerald-900/50 text-left">
-                            👷 Raju Shinde<br><span class="text-[8px] text-slate-400">MH-17-AG-4421</span>
-                        </button>
-                        <button type="button" onclick="setWorkerPreset('Ganesh Pawar', 'MH-17-AG-8833')" class="p-2 text-[10px] font-bold bg-emerald-950/40 text-emerald-200 rounded-xl border border-emerald-900/50 text-left">
-                            👷 Ganesh Pawar<br><span class="text-[8px] text-slate-400">MH-17-AG-8833</span>
-                        </button>
-                    </div>
-                </div>
             </div>
 
             <div class="text-center text-[10px] text-emerald-200/70 font-semibold py-2 relative z-10">
-                Kopargaon Municipal Council • Smart Sanitation Operations
+                City Municipal Council • Smart Sanitation Operations
             </div>
         </main>
 
@@ -181,12 +166,12 @@
                     </div>
                 </div>
 
-                <!-- Live Map Centered on Kopargaon -->
+                <!-- Live Map Centered on City -->
                 <div class="bg-[#0b2410] border border-emerald-900/60 rounded-3xl p-4 space-y-3">
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="text-xs font-black uppercase text-slate-200 flex items-center gap-1.5">
-                                <span>🗺️</span> Kopargaon Field Map & Smart Bins
+                                <span>🗺️</span> City Field Map & Smart Bins
                             </h3>
                             <p class="text-[10px] text-emerald-300/70">Tap pins to navigate or reset emptied bins</p>
                         </div>
@@ -208,7 +193,7 @@
                 <div class="space-y-3">
                     <div class="flex items-center justify-between">
                         <h3 class="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                            <span>🚚</span> My Assigned Kopargaon Route
+                            <span>🚚</span> My Assigned City Route
                         </h3>
                         <span id="routeCountBadge" class="text-[10px] bg-amber-950/40 text-amber-400 border border-amber-900/50 px-2 py-0.5 rounded-full font-bold">
                             0 Active Tasks
@@ -218,11 +203,11 @@
                     <div id="workerTaskList" class="space-y-3"></div>
                 </div>
 
-                <!-- SECTION: MANAGE DUSTBINS (BELOW MAP & TASKS) -->
+                <!-- Smart Dustbins Status -->
                 <div class="space-y-3 pt-2">
                     <div class="flex items-center justify-between">
                         <h3 class="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                            <span>🗑️</span> Kopargaon Smart Dustbins Status
+                            <span>🗑️</span> City Smart Dustbins Status
                         </h3>
                         <span id="workerTotalBinsBadge" class="text-[10px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/50 px-2 py-0.5 rounded-full font-bold">
                             0 Bins
@@ -258,7 +243,7 @@
                     <h3 class="text-sm font-black text-white flex items-center gap-1.5">
                         <span>✨</span> Upload "After Clean" Photo
                     </h3>
-                    <p class="text-[10px] text-slate-400" id="proofModalSubtitle">Task ID: KP-XXXX</p>
+                    <p class="text-[10px] text-slate-400" id="proofModalSubtitle">Task ID: ECC-XXXX</p>
                 </div>
                 <button onclick="closeProofModal()" class="text-slate-400 hover:text-white font-bold text-xs">✕</button>
             </div>
@@ -319,7 +304,7 @@
             authDomain: "ecoclean-35b65.firebaseapp.com",
             databaseURL: "https://ecoclean-35b65-default-rtdb.firebaseio.com",
             projectId: "ecoclean-35b65",
-            storageBucket: "ecoclean-35b65.appspot.com",
+            storageBucket: "ecoclean-35b65.firebasestorage.app",
             messagingSenderId: "93996665345",
             appId: "1:93996665345:web:a4819f70f2ae2ba9fece00"
         };
@@ -327,8 +312,7 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Kopargaon City Coordinates (Center: Shivaji Chowk / Nagar Road)
-        const KOPARGAON_CENTER = [19.8915, 74.4789];
+        const CITY_CENTER = [19.8915, 74.4789];
         let currentWorker = { name: "Raju Shinde", vehicle: "MH-17-AG-4421" };
         let mapInstance = null;
         let mapMarkers = [];
@@ -379,15 +363,6 @@
             }`;
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 3500);
-        }
-
-        function setWorkerPreset(name, vehicle) {
-            currentWorker.name = name;
-            currentWorker.vehicle = vehicle;
-            document.getElementById('workerLoginId').value = name;
-            document.getElementById('headerWorkerName').innerText = name;
-            document.getElementById('headerWorkerVehicle').innerText = `Vehicle: ${vehicle}`;
-            showToast(`Selected: ${name}`);
         }
 
         function handleWorkerLogin(e) {
@@ -463,7 +438,7 @@
                     <div class="bg-[#0b2410] border border-emerald-900/60 rounded-3xl p-6 text-center space-y-2">
                         <span class="text-3xl block">🎉</span>
                         <h4 class="text-xs font-bold text-slate-200">No pending route tasks.</h4>
-                        <p class="text-[10px] text-slate-400">Tap available red pins on the Kopargaon map to self-assign nearby reports.</p>
+                        <p class="text-[10px] text-slate-400">Tap available red pins on the map to self-assign nearby reports.</p>
                     </div>
                 `;
                 return;
@@ -509,7 +484,6 @@
             });
         }
 
-        // Render Dustbins Below Route Tasks
         function renderDustbinsList() {
             const container = document.getElementById('workerDustbinsList');
             if (!container) return;
@@ -518,7 +492,7 @@
             if (municipalDustbins.length === 0) {
                 container.innerHTML = `
                     <div class="bg-[#0b2410] border border-emerald-900/60 rounded-3xl p-6 text-center text-slate-400 text-xs">
-                        No smart dustbins registered on Kopargaon grid.
+                        No smart dustbins registered on grid.
                     </div>
                 `;
                 return;
@@ -662,7 +636,7 @@
 
         function initWorkerMap() {
             if (!mapInstance) {
-                mapInstance = L.map('workerMap', { zoomControl: true }).setView(KOPARGAON_CENTER, 14);
+                mapInstance = L.map('workerMap', { zoomControl: true }).setView(CITY_CENTER, 14);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapInstance);
             } else {
                 mapInstance.invalidateSize();
@@ -677,7 +651,6 @@
             mapMarkers = [];
             binMarkers = [];
 
-            // 1. Grievance Markers in Kopargaon
             complaints.forEach(item => {
                 const pt = extractCoords(item.coords);
                 if (!pt) return;
@@ -723,7 +696,6 @@
                 mapMarkers.push(marker);
             });
 
-            // 2. Smart Dustbins with Live Fill Tracking & Reset Action
             municipalDustbins.forEach(bin => {
                 const pt = extractCoords(bin.coords) || extractCoords([bin.lat, bin.lng]);
                 if (!pt) return;
