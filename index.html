@@ -82,6 +82,38 @@
     <!-- Toast Notification -->
     <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden max-w-xs w-full p-3.5 rounded-2xl shadow-2xl text-xs font-bold text-center border transition-all pointer-events-none"></div>
 
+    <!-- HARDWARE CAMERA VIEWFINDER MODAL -->
+    <div id="cameraModal" class="fixed inset-0 z-50 bg-black/95 hidden flex flex-col justify-between p-4 max-w-md mx-auto">
+        <div class="flex items-center justify-between py-2 border-b border-white/10">
+            <span class="text-xs font-black uppercase text-emerald-400 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                Live Sanitation Camera
+            </span>
+            <button type="button" onclick="closeHardwareCamera()" class="w-8 h-8 rounded-full bg-white/10 text-white font-black text-sm flex items-center justify-center">✕</button>
+        </div>
+
+        <div class="relative w-full h-[65%] rounded-2xl overflow-hidden bg-black flex items-center justify-center border border-emerald-500/30">
+            <video id="cameraVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+            <div class="absolute inset-0 border-2 border-dashed border-emerald-400/40 rounded-2xl pointer-events-none m-4"></div>
+            <span class="absolute bottom-3 text-[10px] font-mono text-emerald-300 bg-black/60 px-2 py-0.5 rounded-full">Align cleaned site inside frame</span>
+        </div>
+
+        <canvas id="cameraCanvas" class="hidden"></canvas>
+
+        <div class="flex flex-col gap-2 pt-2">
+            <button type="button" onclick="captureHardwareFrame()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-ecoGreen-600 hover:from-emerald-500 text-white font-black rounded-2xl shadow-xl text-xs uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center gap-2">
+                <span class="text-base">📸</span>
+                <span>Snap Cleaned Proof Photo</span>
+            </button>
+            <button type="button" onclick="closeHardwareCamera()" class="w-full py-2 bg-white/10 text-slate-300 font-bold rounded-xl text-xs">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden Fallback Global Input for Mobile Gallery/Camera -->
+    <input type="file" id="globalFallbackFileInput" accept="image/*" capture="environment" class="hidden" onchange="handleFallbackFileSelected(event)">
+
     <div class="w-full max-w-md h-full min-h-screen bg-[#0A1D0E] shadow-2xl relative flex flex-col overflow-x-hidden border-x border-emerald-950/40">
 
         <!-- Header -->
@@ -133,14 +165,14 @@
                 </div>
             </div>
 
-            <!-- Active Cleanup Queue with Photo Upload Proof -->
+            <!-- Active Cleanup Queue with Live Camera Upload -->
             <div class="bg-[#0D2411] border border-emerald-950/80 rounded-3xl p-4 shadow-sm space-y-3">
                 <div class="flex items-center justify-between border-b border-emerald-950 pb-2">
                     <div>
                         <h3 class="text-xs font-black uppercase text-white flex items-center gap-1.5">
                             <span>🚛</span> Active Cleanup Dispatches
                         </h3>
-                        <p class="text-[10px] text-slate-400">Photo proof required to resolve each ticket</p>
+                        <p class="text-[10px] text-slate-400">Mandatory clean photo required to close ticket</p>
                     </div>
                     <span id="activeTasksBadge" class="text-[10px] font-black bg-rose-950 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30">
                         0 Tasks
@@ -188,8 +220,9 @@
         let mapMarkers = {};
         let allComplaints = [];
         
-        // Cache to store uploaded after-clean photo strings per ticket ID
         const stagedAfterPhotos = {};
+        let activeCameraTicketId = null;
+        let mediaStream = null;
 
         function cleanDisplayLabel(str) {
             if (!str) return 'City Sector Spot';
@@ -226,6 +259,113 @@
             }
         }
 
+        // ================= HARDWARE CAMERA ENGINE =================
+        async function openHardwareCamera(ticketId) {
+            activeCameraTicketId = ticketId;
+
+            // Attempt direct hardware access via getUserMedia (rear lens preferred)
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                try {
+                    const constraints = {
+                        video: {
+                            facingMode: { ideal: "environment" },
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        },
+                        audio: false
+                    };
+                    mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    const videoEl = document.getElementById('cameraVideo');
+                    videoEl.srcObject = mediaStream;
+                    document.getElementById('cameraModal').classList.remove('hidden');
+                    return;
+                } catch (err) {
+                    console.warn("Hardware camera permission blocked or unavailable, falling back to native file picker:", err);
+                }
+            }
+
+            // Fallback for browsers with strict iframe or non-https restrictions
+            triggerFallbackPicker(ticketId);
+        }
+
+        function triggerFallbackPicker(ticketId) {
+            activeCameraTicketId = ticketId;
+            const input = document.getElementById('globalFallbackFileInput');
+            input.value = "";
+            input.click();
+        }
+
+        function handleFallbackFileSelected(event) {
+            const file = event.target.files[0];
+            if (!file || !activeCameraTicketId) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                applyStagedPhoto(activeCameraTicketId, e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function captureHardwareFrame() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            if (!video || !activeCameraTicketId) return;
+
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const base64Data = canvas.toDataURL('image/jpeg', 0.82);
+            applyStagedPhoto(activeCameraTicketId, base64Data);
+            closeHardwareCamera();
+        }
+
+        function closeHardwareCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            document.getElementById('cameraModal').classList.add('hidden');
+        }
+
+        function applyStagedPhoto(ticketId, photoBase64) {
+            stagedAfterPhotos[ticketId] = photoBase64;
+
+            const previewImg = document.getElementById(`afterPreviewImg_${ticketId}`);
+            const previewWrapper = document.getElementById(`afterPreviewWrapper_${ticketId}`);
+            const uploadPrompt = document.getElementById(`afterUploadPrompt_${ticketId}`);
+            const submitBtn = document.getElementById(`resolveBtn_${ticketId}`);
+
+            if (previewImg && previewWrapper && uploadPrompt && submitBtn) {
+                previewImg.src = photoBase64;
+                previewWrapper.classList.remove('hidden');
+                uploadPrompt.classList.add('hidden');
+
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                submitBtn.classList.add('hover:bg-emerald-600');
+                submitBtn.innerText = "✓ Upload Proof & Mark Cleared";
+            }
+            showToast("📸 Photo captured! Ready for verification.");
+        }
+
+        function removeStagedAfterPhoto(ticketId) {
+            delete stagedAfterPhotos[ticketId];
+            const previewWrapper = document.getElementById(`afterPreviewWrapper_${ticketId}`);
+            const uploadPrompt = document.getElementById(`afterUploadPrompt_${ticketId}`);
+            const submitBtn = document.getElementById(`resolveBtn_${ticketId}`);
+
+            if (previewWrapper && uploadPrompt && submitBtn) {
+                previewWrapper.classList.add('hidden');
+                uploadPrompt.classList.remove('hidden');
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                submitBtn.innerText = "⚠️ Capture Photo to Resolve";
+            }
+        }
+
+        // ================= DUSTBINS RENDERING =================
         function renderDustbins(dustbinData) {
             if (!mapInstance || !dustbinData) return;
 
@@ -309,55 +449,7 @@
             });
         }
 
-        // Handle After-Cleaning Photo Selection
-        function handleAfterPhotoSelected(event, ticketId) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const base64Data = e.target.result;
-                stagedAfterPhotos[ticketId] = base64Data;
-
-                // Update UI preview
-                const previewImg = document.getElementById(`afterPreviewImg_${ticketId}`);
-                const previewWrapper = document.getElementById(`afterPreviewWrapper_${ticketId}`);
-                const uploadPrompt = document.getElementById(`afterUploadPrompt_${ticketId}`);
-                const submitBtn = document.getElementById(`resolveBtn_${ticketId}`);
-
-                if (previewImg && previewWrapper && uploadPrompt && submitBtn) {
-                    previewImg.src = base64Data;
-                    previewWrapper.classList.remove('hidden');
-                    uploadPrompt.classList.add('hidden');
-                    
-                    // Activate submission button
-                    submitBtn.disabled = false;
-                    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    submitBtn.classList.add('hover:bg-emerald-600');
-                    submitBtn.innerText = "✓ Upload Proof & Mark Cleared";
-                }
-                showToast("📸 Cleaned proof photo ready for submission!");
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function removeStagedAfterPhoto(ticketId) {
-            delete stagedAfterPhotos[ticketId];
-            const previewWrapper = document.getElementById(`afterPreviewWrapper_${ticketId}`);
-            const uploadPrompt = document.getElementById(`afterUploadPrompt_${ticketId}`);
-            const submitBtn = document.getElementById(`resolveBtn_${ticketId}`);
-            const fileInput = document.getElementById(`fileInput_${ticketId}`);
-
-            if (previewWrapper && uploadPrompt && submitBtn && fileInput) {
-                previewWrapper.classList.add('hidden');
-                uploadPrompt.classList.remove('hidden');
-                fileInput.value = "";
-                submitBtn.disabled = true;
-                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                submitBtn.innerText = "⚠️ Upload Photo to Resolve";
-            }
-        }
-
+        // ================= COMPLAINTS RENDERING =================
         function renderComplaints(complaintsData) {
             if (!mapInstance || !complaintsData) return;
 
@@ -381,7 +473,7 @@
                 if (item.status !== 'Resolved') {
                     pendingCount++;
 
-                    // Map pin for active complaint
+                    // Map pin
                     if (lat && lng) {
                         if (mapMarkers['comp_' + item.id]) {
                             mapInstance.removeLayer(mapMarkers['comp_' + item.id]);
@@ -416,7 +508,7 @@
                                 <p class="text-[10px] text-slate-600 line-clamp-2">${cleanComment}</p>
                                 
                                 <div class="pt-1 border-t flex flex-col gap-1">
-                                    <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="block text-center py-1 bg-emerald-700 text-white rounded text-[10px] font-extrabold">
+                                    <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="block text-center py-1 bg-slate-800 text-white rounded text-[10px] font-extrabold">
                                         🧭 Navigate to Spot
                                     </a>
                                 </div>
@@ -426,9 +518,9 @@
                         mapMarkers['comp_' + item.id] = marker;
                     }
 
-                    // Render Task Card with After-Photo proof workflow
+                    // Render Task Card
                     const taskCard = document.createElement('div');
-                    taskCard.className = "p-3 rounded-2xl bg-[#08180B] border border-emerald-950 space-y-3 text-xs";
+                    taskCard.className = "p-3.5 rounded-2xl bg-[#08180B] border border-emerald-950 space-y-3 text-xs";
                     
                     const hasStagedPhoto = stagedAfterPhotos[item.id];
 
@@ -443,8 +535,8 @@
                             </span>
                         </div>
 
-                        <!-- Before & After Comparison Preview Container -->
-                        <div class="grid grid-cols-2 gap-2">
+                        <!-- Before & After Comparison -->
+                        <div class="grid grid-cols-2 gap-2.5">
                             <div class="space-y-1">
                                 <span class="text-[9px] font-black uppercase text-rose-400 block">Reported Garbage</span>
                                 <img src="${item.beforeImage}" class="w-full h-24 rounded-xl object-cover border border-emerald-900 shadow">
@@ -453,16 +545,18 @@
                             <div class="space-y-1">
                                 <span class="text-[9px] font-black uppercase text-emerald-400 block">Cleaned Proof</span>
                                 
-                                <!-- File Upload Trigger -->
-                                <label class="block cursor-pointer">
-                                    <div id="afterUploadPrompt_${item.id}" class="${hasStagedPhoto ? 'hidden' : ''} w-full h-24 border-2 border-dashed border-emerald-800 rounded-xl bg-black/40 flex flex-col items-center justify-center text-center p-1 hover:border-emerald-500 transition-colors">
-                                        <span class="text-xl">📸</span>
-                                        <span class="text-[9px] font-bold text-emerald-300">Tap to Snap Cleaned Spot</span>
-                                    </div>
-                                    <input type="file" id="fileInput_${item.id}" accept="image/*" capture="environment" onchange="handleAfterPhotoSelected(event, '${item.id}')" class="hidden">
-                                </label>
+                                <!-- Trigger Buttons Container -->
+                                <div id="afterUploadPrompt_${item.id}" class="${hasStagedPhoto ? 'hidden' : ''} flex flex-col gap-1.5 h-24">
+                                    <button type="button" onclick="openHardwareCamera('${item.id}')" class="flex-1 w-full border border-emerald-500/60 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 flex flex-col items-center justify-center text-center p-1 active:scale-95 transition-all">
+                                        <span class="text-lg">📸</span>
+                                        <span class="text-[9px] font-black text-emerald-300">Open Camera</span>
+                                    </button>
+                                    <button type="button" onclick="triggerFallbackPicker('${item.id}')" class="py-1 w-full rounded-lg bg-black/40 border border-emerald-950 text-[9px] font-bold text-slate-400 hover:text-white">
+                                        Upload File
+                                    </button>
+                                </div>
 
-                                <!-- Staged Preview -->
+                                <!-- Staged Preview Box -->
                                 <div id="afterPreviewWrapper_${item.id}" class="${hasStagedPhoto ? '' : 'hidden'} relative w-full h-24 rounded-xl overflow-hidden border-2 border-emerald-500 shadow">
                                     <img id="afterPreviewImg_${item.id}" src="${hasStagedPhoto || ''}" class="w-full h-full object-cover">
                                     <button type="button" onclick="removeStagedAfterPhoto('${item.id}')" class="absolute top-1 right-1 bg-black/70 text-white w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center">✕</button>
@@ -474,11 +568,11 @@
 
                         <!-- Action Bar -->
                         <div class="pt-2 border-t border-emerald-950/60 flex items-center gap-2">
-                            <button id="resolveBtn_${item.id}" onclick="submitTaskCompletion('${item.id}')" ${hasStagedPhoto ? '' : 'disabled'} class="flex-1 py-2 rounded-xl text-xs font-black shadow active:scale-95 transition-all bg-emerald-700 text-white ${hasStagedPhoto ? 'hover:bg-emerald-600' : 'opacity-50 cursor-not-allowed'}">
-                                ${hasStagedPhoto ? '✓ Upload Proof & Mark Cleared' : '⚠️ Upload Photo to Resolve'}
+                            <button id="resolveBtn_${item.id}" onclick="submitTaskCompletion('${item.id}')" ${hasStagedPhoto ? '' : 'disabled'} class="flex-1 py-2.5 rounded-xl text-xs font-black shadow active:scale-95 transition-all bg-emerald-700 text-white ${hasStagedPhoto ? 'hover:bg-emerald-600' : 'opacity-50 cursor-not-allowed'}">
+                                ${hasStagedPhoto ? '✓ Upload Proof & Mark Cleared' : '⚠️ Capture Photo to Resolve'}
                             </button>
                             ${lat && lng ? `
-                                <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1 active:scale-95 transition-all">
+                                <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1 active:scale-95 transition-all">
                                     <span>🧭</span> Nav
                                 </a>
                             ` : ''}
@@ -494,7 +588,6 @@
                         delete mapMarkers['comp_' + item.id];
                     }
 
-                    // Render in Resolved History with Before/After preview
                     const resolvedCard = document.createElement('div');
                     resolvedCard.className = "p-2.5 rounded-xl bg-[#08180B]/60 border border-emerald-950/40 flex items-center justify-between text-xs";
                     resolvedCard.innerHTML = `
@@ -505,7 +598,7 @@
                                 <h5 class="font-bold text-slate-300 text-xs">${cleanLandmark}</h5>
                             </div>
                         </div>
-                        <span class="text-[10px] font-black text-emerald-400">✓ Verified Clean</span>
+                        <span class="text-[10px] font-black text-emerald-400">✓ Completed</span>
                     `;
                     resolvedListEl.appendChild(resolvedCard);
                 }
